@@ -1,0 +1,21 @@
+# docker-compose.yml
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ticketflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ticketflow}
+      POSTGRES_DB: ticketflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+
+volumes:
+  pgdata:

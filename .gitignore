@@ -1,0 +1,7 @@
+.env
+/api
+/seed
+/loadtest
+*.exe
+.idea/
+.vscode/
