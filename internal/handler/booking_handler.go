@@ -2,11 +2,12 @@ package handler
 
 import (
 	"errors"
-	"github.com/Aotorun/ticketflow/internal/domain"
-	"github.com/Aotorun/ticketflow/internal/service"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/Aotorun/ticketflow/internal/domain"
+	"github.com/Aotorun/ticketflow/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -16,6 +17,20 @@ const holdTTL = 5 * time.Minute
 
 type reserveRequest struct {
 	UserID uuid.UUID `json:"user_id" binding:"required"`
+}
+
+type SeatResponse struct {
+	SeatID    uuid.UUID         `json:"seat_id"`
+	Status    domain.SeatStatus `json:"status"`
+	HeldUntil *time.Time        `json:"held_until,omitempty"`
+}
+
+func toSeatResponse(seat domain.EventSeat) SeatResponse {
+	return SeatResponse{
+		SeatID:    seat.SeatID,
+		Status:    seat.Status,
+		HeldUntil: seat.HeldUntil,
+	}
 }
 
 type BookingHandler struct {
@@ -34,14 +49,18 @@ func (h *BookingHandler) GetSeatMap(c *gin.Context) {
 		return
 	}
 
-	res, err := h.svc.GetSeatMap(c.Request.Context(), id)
+	seats, err := h.svc.GetSeatMap(c.Request.Context(), id)
 	if err != nil {
 		log.Print(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		return
 	}
 
-	c.Data(http.StatusOK, "application/json; charset=utf-8", []byte(res))
+	resp := make([]SeatResponse, 0, len(seats))
+	for _, s := range seats {
+		resp = append(resp, toSeatResponse(s))
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func (h *BookingHandler) ReserveAny(c *gin.Context) {

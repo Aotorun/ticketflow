@@ -2,14 +2,14 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/Aotorun/ticketflow/internal/domain"
 	"github.com/Aotorun/ticketflow/internal/postgres"
 	"github.com/Aotorun/ticketflow/internal/redisclient"
-	"log"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -44,31 +44,25 @@ func (bs *BookingService) CreateEvent(ctx context.Context, venueID uuid.UUID, na
 	return eventID, nil
 }
 
-func (bs *BookingService) GetSeatMap(ctx context.Context, eventID uuid.UUID) (string, error) {
-	res, found, err := bs.cache.Get(ctx, eventID)
+func (bs *BookingService) GetSeatMap(ctx context.Context, eventID uuid.UUID) ([]domain.EventSeat, error) {
+	seats, found, err := bs.cache.Get(ctx, eventID)
 	if err != nil {
 		log.Printf("redis get error: %s", err)
 	}
 	if found {
-		return res, nil
+		return seats, nil
 	}
 
-	seats, err := bs.repo.ListEventSeats(ctx, eventID)
+	seats, err = bs.repo.ListEventSeats(ctx, eventID)
 	if err != nil {
-		return "", fmt.Errorf("get list seats: %w", err)
+		return nil, fmt.Errorf("get list seats: %w", err)
 	}
 
-	seatsJSON, err := json.Marshal(seats)
-	if err != nil {
-		return "", fmt.Errorf("json marshal: %w", err)
-	}
-
-	err = bs.cache.Set(ctx, eventID, string(seatsJSON), time.Second*30)
-	if err != nil {
+	if err := bs.cache.Set(ctx, eventID, seats, 30*time.Second); err != nil {
 		log.Printf("redis set error: %s", err)
 	}
 
-	return string(seatsJSON), nil
+	return seats, nil
 }
 
 func (bs *BookingService) ReserveAny(ctx context.Context, eventID, userID uuid.UUID, holdTTL time.Duration) (uuid.UUID, error) {

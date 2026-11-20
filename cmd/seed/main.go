@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 	"time"
 
 	"github.com/Aotorun/ticketflow/internal/config"
@@ -67,5 +68,5 @@ func main() {
 	}
 	fmt.Println("2nd call took:", time.Since(start))
 
-	fmt.Println("data matches:", data1 == data2)
+	fmt.Println("data matches:", reflect.DeepEqual(data1, data2))
 }

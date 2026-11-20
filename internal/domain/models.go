@@ -45,11 +45,11 @@ type Event struct {
 }
 
 type EventSeat struct {
-	EventID   uuid.UUID  `json:"event_id"`
-	SeatID    uuid.UUID  `json:"seat_id"`
-	Status    SeatStatus `json:"status"`
-	HeldBy    *uuid.UUID `json:"held_by,omitempty"`
-	HeldUntil *time.Time `json:"held_until,omitempty"`
+	EventID   uuid.UUID
+	SeatID    uuid.UUID
+	Status    SeatStatus
+	HeldBy    *uuid.UUID
+	HeldUntil *time.Time
 }
 
 type Booking struct {
