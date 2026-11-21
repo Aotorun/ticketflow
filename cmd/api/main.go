@@ -25,6 +25,10 @@ func main() {
 	cfg := config.Load()
 
 	r := gin.Default()
+	if err := r.SetTrustedProxies(nil); err != nil {
+		log.Fatalf("trusted proxies: %v", err)
+	}
+
 	r.GET("/health", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
