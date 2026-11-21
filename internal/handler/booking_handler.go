@@ -42,14 +42,12 @@ func NewBookingHandler(svc *service.BookingService) *BookingHandler {
 }
 
 func (h *BookingHandler) GetSeatMap(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+	eventID, ok := parseUUIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	seats, err := h.svc.GetSeatMap(c.Request.Context(), id)
+	seats, err := h.svc.GetSeatMap(c.Request.Context(), eventID)
 	if err != nil {
 		log.Print(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
@@ -64,16 +62,13 @@ func (h *BookingHandler) GetSeatMap(c *gin.Context) {
 }
 
 func (h *BookingHandler) ReserveAny(c *gin.Context) {
-	idStr := c.Param("id")
-	eventID, err := uuid.Parse(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+	eventID, ok := parseUUIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	var req reserveRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	req, ok := bindReserve(c)
+	if !ok {
 		return
 	}
 
@@ -87,28 +82,22 @@ func (h *BookingHandler) ReserveAny(c *gin.Context) {
 }
 
 func (h *BookingHandler) ReserveSpecific(c *gin.Context) {
-	idStr := c.Param("id")
-	eventID, err := uuid.Parse(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+	eventID, ok := parseUUIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	idSeatStr := c.Param("seat_id")
-	seatID, err := uuid.Parse(idSeatStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid seat id"})
+	seatID, ok := parseUUIDParam(c, "seat_id")
+	if !ok {
 		return
 	}
 
-	var req reserveRequest
-	err = c.ShouldBindJSON(&req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	req, ok := bindReserve(c)
+	if !ok {
 		return
 	}
 
-	err = h.svc.ReserveSpecific(c.Request.Context(), eventID, seatID, req.UserID, holdTTL)
+	err := h.svc.ReserveSpecific(c.Request.Context(), eventID, seatID, req.UserID, holdTTL)
 	if err != nil {
 		c.JSON(handlingError(err))
 		return
@@ -118,28 +107,22 @@ func (h *BookingHandler) ReserveSpecific(c *gin.Context) {
 }
 
 func (h *BookingHandler) Confirm(c *gin.Context) {
-	idStr := c.Param("id")
-	eventID, err := uuid.Parse(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+	eventID, ok := parseUUIDParam(c, "id")
+	if !ok {
 		return
 	}
 
-	idSeatStr := c.Param("seat_id")
-	seatID, err := uuid.Parse(idSeatStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid seat id"})
+	seatID, ok := parseUUIDParam(c, "seat_id")
+	if !ok {
 		return
 	}
 
-	var req reserveRequest
-	err = c.ShouldBindJSON(&req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	req, ok := bindReserve(c)
+	if !ok {
 		return
 	}
 
-	err = h.svc.Confirm(c.Request.Context(), eventID, seatID, req.UserID)
+	err := h.svc.Confirm(c.Request.Context(), eventID, seatID, req.UserID)
 	if err != nil {
 		c.JSON(handlingError(err))
 		return
@@ -164,4 +147,26 @@ func handlingError(err error) (int, gin.H) {
 		log.Printf("internal error: %v", err)
 		return http.StatusInternalServerError, gin.H{"error": "internal error"}
 	}
+}
+
+func parseUUIDParam(c *gin.Context, name string) (uuid.UUID, bool) {
+	paramStr := c.Param(name)
+	param, err := uuid.Parse(paramStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + name})
+		return uuid.Nil, false
+	}
+
+	return param, true
+}
+
+func bindReserve(c *gin.Context) (reserveRequest, bool) {
+	var req reserveRequest
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return req, false
+	}
+
+	return req, true
 }
