@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX uniq_active_booking ON bookings (event_id, seat_id) WHERE status IN ('held', 'confirmed');

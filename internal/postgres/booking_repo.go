@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Aotorun/ticketflow/internal/domain"
 	"time"
+
+	"github.com/Aotorun/ticketflow/internal/domain"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
